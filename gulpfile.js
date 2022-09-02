@@ -230,6 +230,3 @@ exports.dev = gulp.series(clean, gulp.parallel(scripts, stylesDev, html, img), w
 exports.default = this.dev;
 exports.fonts = gulp.series(otftottf, ttftowoff, fontsStyle);
 exports.info = info;
-/* gulp dev / gulp вызовет обычную сборку проекта
-gulp prod вызовет сборку проекта в минифицированной версии
-*/
