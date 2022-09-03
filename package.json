@@ -30,6 +30,7 @@
     "gulp-fonter": "^0.3.0",
     "gulp-newer": "^1.4.0",
     "gulp-sass": "^5.1.0",
+    "gulp-sftp": "^0.1.5",
     "gulp-sourcemaps": "^3.0.0",
     "gulp-tinypng-compress": "^1.2.5",
     "gulp-ttf2woff": "^1.1.1",

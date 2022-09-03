@@ -14,7 +14,8 @@ const gulp = require('gulp'), // основной модуль
       fonter = require('gulp-fonter'),
       ttf2woff2 = require('gulp-ttf2woff'),
       img2webp = require('gulp-webp'),
-      newer = require('gulp-newer');
+      newer = require('gulp-newer'),
+      sftp = require('gulp-sftp');
 
 // пути
 const path = {
@@ -42,6 +43,11 @@ const path = {
 	fonts: {
 		src: 'src/assets/fonts/',
 		dest: 'dist/assets/fonts/',
+	},
+	// путь к svg
+	svg: {
+		src: 'src/assets/images/**/*.svg',
+		dest: 'dist/assets/images/svg',
 	},
 };
 
@@ -94,7 +100,7 @@ function scripts() {
 			})
 		)
 		.pipe(uglify())
-	        .pipe(sourcemaps.write())
+		.pipe(sourcemaps.write())
 		.pipe(gulp.dest(path.scripts.dest))
 		.pipe(browsersync.stream());
 }
@@ -103,13 +109,13 @@ function scripts() {
 
 function html() {
 	//prettier-ignore
-	return gulp.src([path.html.src, '!src/components/**/*.html'])
+	return gulp.src([path.html.src, '!src/components/html/**/*.html'])
     .pipe(fileinclude())
     .pipe(gulp.dest(path.html.dest))
     .pipe(browsersync.stream());
 }
 
-// ================= IMAGES==============
+// ================= изображения ==============
 
 function img() {
 	//prettier-ignore
@@ -122,6 +128,13 @@ function img() {
     }))
     .pipe(img2webp())
     .pipe(gulp.dest(path.img.dest))
+}
+
+function svg() {
+	//prettier-ignore
+	return gulp.src(path.svg.src)
+    .pipe(svgmin())
+    .pipe(gulp.dest(path.svg.dest))
 }
 
 // =============== шрифты =============
@@ -207,6 +220,18 @@ function fontsStyle() {
 	return gulp.dest(path.styles.dest);
 }
 
+// ================ sftp
+
+function sftprun() {
+	//prettier-ignore
+	return gulp.src('dist/**/*')
+    .pipe(sftp({
+        host: 'website.com',
+        user: 'me',
+        pass: '1234'
+    }));
+}
+
 //=========================================================================
 
 function watch() {
@@ -222,13 +247,15 @@ function watch() {
 
 const info = () => {
 	console.log(
-		'comands: \n gulp prod: окончательная сборка проекта со сжатием всех файлов \n gulp dev / gulp: классическая сборка проекта \n gulp fonts: автоматическая конвертация и запись в стили шрифтов'
+		'comands: \n gulp prod: окончательная сборка проекта со сжатием всех файлов \n gulp dev / gulp: классическая сборка проекта \n gulp fonts: автоматическая конвертация и запись в стили шрифтов \n gulp sftp: передача фалов на удаленный сервер в настройках надо вписать данные.\u001b[33m ВНИМАНИЕ!\u001b[0m не забывайте удалять ключи при публикации кода в открытый доступ'
 	);
+	return;
 };
 
 // dev и prod
-exports.prod = gulp.series(clean, gulp.parallel(scripts, stylesProd, html, img));
+exports.prod = gulp.series(clean, gulp.parallel(scripts, stylesProd, html, img, svg));
 exports.dev = gulp.series(clean, gulp.parallel(scripts, stylesDev, html, img), watch);
 exports.default = this.dev;
 exports.fonts = gulp.series(otftottf, ttftowoff, fontsStyle);
+exports.sftp = sftprun;
 exports.info = info;
