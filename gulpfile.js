@@ -87,12 +87,14 @@ function scripts() {
 		.src(path.scripts.src, {
 			sourcemaps: true,
 		})
+		.pipe(sourcemaps.init())
 		.pipe(
 			babel({
 				presets: ['@babel/env'],
 			})
 		)
 		.pipe(uglify())
+	        .pipe(sourcemaps.write())
 		.pipe(gulp.dest(path.scripts.dest))
 		.pipe(browsersync.stream());
 }
