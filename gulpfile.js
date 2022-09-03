@@ -122,7 +122,7 @@ function img() {
 	return gulp.src(path.img.src)
     .pipe(newer(path.img.dest))
     .pipe(image({
-        key: 'fPv2DXfQrCWJSzLR8wbSW3CfNmhNTYVg',
+        key: 'your API key from https://tinypng.com/developers',
         sigFile: 'images/.tinypng-sigs',
         log: true
     }))
