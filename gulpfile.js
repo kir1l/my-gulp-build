@@ -15,7 +15,9 @@ const gulp = require('gulp'), // основной модуль
       ttf2woff2 = require('gulp-ttf2woff'),
       img2webp = require('gulp-webp'),
       newer = require('gulp-newer'),
-      sftp = require('gulp-sftp');
+      sftp = require('gulp-sftp'),
+      svgmin = require('gulp-svgmin'),
+      pathModule = require('path');
 
 // пути
 const path = {
@@ -122,7 +124,7 @@ function img() {
 	return gulp.src(path.img.src)
     .pipe(newer(path.img.dest))
     .pipe(image({
-        key: 'your API key from https://tinypng.com/developers',
+        key: 'fPv2DXfQrCWJSzLR8wbSW3CfNmhNTYVg',
         sigFile: 'images/.tinypng-sigs',
         log: true
     }))
@@ -164,60 +166,54 @@ function ttftowoff() {
 		.pipe(gulp.dest(path.fonts.dest));
 }
 
-function fontsStyle() {
+function fontsStyle(cb) {
 	//Файл стилей подключения шрифтов
-	let fontsFile = `dist/css/fonts.css`;
+	const fontsFile = `src/components/scss/fonts.scss`;
 	//Проверяем, существуют ли файлы шрифтов
-	fs.readdir(path.fonts.dest, function (err, fontsFiles) {
-		if (fontsFiles) {
-			let cb = () => {
-				console.log('succes');
-			};
-			//Проверяем, существует ли файл стилей для подключения шрифтов
-			if (!fs.existsSync(fontsFile)) {
-				//Если файла нет, создаём его
-				fs.writeFile(fontsFile, '', cb);
-				let newFileOnly;
-				for (var i = 0; i < fontsFiles.length; i++) {
-					//Записываем подключения шрифтов в файл стилей
-					let fontFileName = fontsFiles[i].split('.')[0];
-					if (newFileOnly !== fontFileName) {
-						let fontName = fontFileName.split('-')[0] ? fontFileName.split('-')[0] : fontFileName;
-						let fontWeight = fontFileName.split('-')[1] ? fontFileName.split('-')[1] : fontFileName;
-						if (fontWeight.toLowerCase() === 'thin') {
-							fontWeight = 100;
-						} else if (fontWeight.toLowerCase() === 'extralight') {
-							fontWeight = 200;
-						} else if (fontWeight.toLowerCase() === 'light') {
-							fontWeight = 300;
-						} else if (fontWeight.toLowerCase() === 'medium') {
-							fontWeight = 500;
-						} else if (fontWeight.toLowerCase() === 'semibold') {
-							fontWeight = 600;
-						} else if (fontWeight.toLowerCase() === 'bold') {
-							fontWeight = 700;
-						} else if (fontWeight.toLowerCase() === 'extrabold' || fontWeight.toLowerCase() === 'heavy') {
-							fontWeight = 800;
-						} else if (fontWeight.toLowerCase() === 'black') {
-							fontWeight = 900;
-						} else {
-							fontWeight = 400;
-						}
-						fs.appendFile(
-							fontsFile,
-							`@font-face{\n\tfont-family: ${fontName};\n\tfont-display: swap;\n\tsrc: url("../assets/fonts/${fontFileName}.woff2") format("woff2"), url("../assets/fonts/${fontFileName}.woff") format("woff");\n\tfont-weight: ${fontWeight};\n\tfont-style: normal;\n}\r\n`,
-							cb
-						);
-						newFileOnly = fontFileName;
-					}
-				}
-			} else {
-				//Если файл есть, выводим сообщение
-				console.log('Файл scss/fonts.css уже существует. Для обновления файла нужно его удалить!');
-			}
-		}
-	});
-	return gulp.dest(path.styles.dest);
+	const fontFiles = fs.readdirSync(path.fonts.dest);
+	const fontWeights = {
+		thin: 100,
+		extralight: 200,
+		light: 300,
+		medium: 500,
+		semibold: 600,
+		bold: 700,
+		extrabold: 800,
+		heavy: 800,
+		black: 900,
+		default: 400,
+	};
+	const fileNames = [];
+
+	for (let i = 0; i < fontFiles.length; i++) {
+		const filePath = fontFiles[i];
+		const fontFileName = pathModule.basename(
+			filePath,
+			pathModule.extname(filePath)
+		);
+
+		if (fileNames.indexOf(fontFileName) !== -1) continue;
+		fileNames.push(fontFileName);
+
+		const fileNameParts = fontFileName.split('-');
+		// игнорируем все файлы, имя которых не соответсвует маске: FontName-FontWeight
+		if (fileNameParts.length !== 2) continue;
+
+		const fontName = fileNameParts[0];
+		const fontWeightPart =
+			typeof fileNameParts[1] === 'string'
+				? fileNameParts[1].toLowerCase()
+				: fileNameParts[1];
+
+		const fontWeight = fontWeights[fontWeightPart] || fontWeights.default;
+
+		fs.appendFileSync(
+			fontsFile,
+			`@font-face{\n\tfont-family: ${fontName};\n\tfont-display: swap;\n\tsrc: url("../assets/fonts/${fontFileName}.woff2") format("woff2"), url("../assets/fonts/${fontFileName}.woff") format("woff");\n\tfont-weight: ${fontWeight};\n\tfont-style: normal;\n}\r\n`
+		);
+	}
+
+	cb();
 }
 
 // ================ sftp
@@ -243,6 +239,9 @@ function watch() {
 	gulp.watch(path.styles.src, stylesDev);
 	gulp.watch(path.scripts.src, scripts);
 	gulp.watch(path.html.src, html);
+	gulp.watch('src/components/scss/*.scss', stylesDev);
+	gulp.watch('src/components/js/*.js', scripts);
+	gulp.watch('src/components/html/*.html', html);
 }
 
 const info = () => {
@@ -253,9 +252,21 @@ const info = () => {
 };
 
 // dev и prod
-exports.prod = gulp.series(clean, gulp.parallel(scripts, stylesProd, html, img, svg));
-exports.dev = gulp.series(clean, gulp.parallel(scripts, stylesDev, html, img), watch);
+exports.prod = gulp.series(
+	clean,
+	otftottf,
+	ttftowoff,
+	fontsStyle,
+	gulp.parallel(scripts, stylesProd, html, img, svg)
+);
+exports.dev = gulp.series(
+	clean,
+	otftottf,
+	ttftowoff,
+	fontsStyle,
+	gulp.parallel(scripts, stylesDev, html, img),
+	watch
+);
 exports.default = this.dev;
-exports.fonts = gulp.series(otftottf, ttftowoff, fontsStyle);
 exports.sftp = sftprun;
 exports.info = info;
